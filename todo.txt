@@ -2,3 +2,4 @@
 + Only recalibrate IMU on startup if calibration data is non-existent. Also, default volume setting at 75%
 + Add menu option to exit to REPL
 + Remove the duplicate test copy of Maps
++ Also, remove the Merry-Go-Round individual buzzer channel test

@@ -115,6 +115,7 @@ class MusicBoxApp:
         self.song_title = None
         self.animated_playback = False
         self.playback_output_index = 0
+        self.playback_output_selection = True
 
         self.main_menu = (
             ("Play song", self.open_song_menu),
@@ -193,6 +194,7 @@ class MusicBoxApp:
         self.song_title = title
         self.screen = "playing"
         self.playback_output_index = 0
+        self.playback_output_selection = path != "songs/merry_go_round.song"
         self.audio.set_voice_filter(None)
         self.animated_playback = bool(
             self.animation_engine is not None
@@ -229,15 +231,18 @@ class MusicBoxApp:
         display.text("NOW PLAYING", 20, 2)
         title_x = max(0, (display.width - len(self.song_title) * 8) // 2)
         display.text(self.song_title, title_x, 15)
-        display.text("Output:", 0, 29)
-        output = PLAYBACK_OUTPUTS[self.playback_output_index]
-        output_x = max(0, (display.width - len(output) * 8) // 2)
-        display.text(output, output_x, 40)
+        if self.playback_output_selection:
+            display.text("Output:", 0, 29)
+            output = PLAYBACK_OUTPUTS[self.playback_output_index]
+            output_x = max(0, (display.width - len(output) * 8) // 2)
+            display.text(output, output_x, 40)
         display.fill_rect(0, 52, display.width, 12, 1)
         display.text("Click: Stop", 20, 54, 0)
         display.show()
 
     def adjust_playback_output(self, delta):
+        if not self.playback_output_selection:
+            return
         self.playback_output_index = (
             self.playback_output_index + delta
         ) % len(PLAYBACK_OUTPUTS)

@@ -43,6 +43,8 @@ class AppTests(unittest.TestCase):
         spec = importlib.util.spec_from_file_location("music_box_test_main", APP / "main.py")
         self.main = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.main)
+        self.main.time = MagicMock()
+        self.main.time.ticks_ms.return_value = 1000
 
     def tearDown(self):
         self.patcher.stop()
@@ -100,6 +102,27 @@ class AppTests(unittest.TestCase):
                 with self.assertRaises(BaseException) as raised:
                     self.main.main()
         self.assertNotIsInstance(raised.exception, (Exception, KeyboardInterrupt, SystemExit))
+
+    def test_merry_go_round_has_no_individual_buzzer_controls(self):
+        app = self.main.MusicBoxApp()
+        app.play_merry_go_round()
+        self.assertFalse(app.playback_output_selection)
+        self.audio.set_voice_filter.assert_called_once_with(None)
+        self.display.text.reset_mock()
+        app.draw_playing()
+        texts = [call.args[0] for call in self.display.text.call_args_list]
+        self.assertNotIn("Output:", texts)
+        self.assertNotIn("All buzzers", texts)
+        app.adjust_playback_output(1)
+        self.audio.set_voice_filter.assert_called_once_with(None)
+
+    def test_other_songs_retain_buzzer_controls(self):
+        app = self.main.MusicBoxApp()
+        app.play_merry_go_round()
+        app.play_maps()
+        self.assertTrue(app.playback_output_selection)
+        app.adjust_playback_output(1)
+        self.audio.set_voice_filter.assert_called_with(0)
 
 
 if __name__ == "__main__":
