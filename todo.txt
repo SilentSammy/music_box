@@ -1,4 +1,4 @@
-- [x] Debounce the encoder button and decode full quadrature detents so
-  release bounce cannot create presses and small nudges cannot skip steps.
-- Only recalibrate IMU on startup if calibration data is non-existent. Also, default volume setting at 75%
-- Add menu option to exit to REPL
++ Debounce the encoder button and decode full quadrature detents so release bounce cannot create presses and small nudges cannot skip steps.
++ Only recalibrate IMU on startup if calibration data is non-existent. Also, default volume setting at 75%
++ Add menu option to exit to REPL
++ Remove the duplicate test copy of Maps

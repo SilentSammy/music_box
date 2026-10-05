@@ -54,7 +54,6 @@ SONGS = (
     ("Mii Channel", "songs/mii_channel.song", True),
     ("Super Mario", "songs/super_mario_world.song", True),
     ("Maps", "songs/maps.song", True),
-    ("Maps (No anim)", "songs/maps_no_animation.song", False),
 )
 ANIMATIONS_ENABLED = True
 PLAYBACK_OUTPUTS = (
@@ -77,6 +76,7 @@ class AnimationHardware:
 
 class MusicBoxApp:
     def __init__(self):
+        self.settings = Settings()
         i2c = I2C(I2C_ID, scl=Pin(SCL_PIN), sda=Pin(SDA_PIN), freq=400_000)
         self.display = SSD1306(i2c)
         self.encoder = Encoder(
@@ -90,11 +90,12 @@ class MusicBoxApp:
         self.imu_offset = None
         self.animation_engine = None
         if ANIMATIONS_ENABLED:
-            self.display.text("Calibrating IMU", 8, 20)
-            self.display.text("Keep device still", 0, 34)
-            self.display.show()
             self.imu = MPU6050(i2c)
-            self.imu_offset = self.imu.calibrate_accel()
+            self.imu_offset = self.settings.imu_calibration()
+            if self.imu_offset is None:
+                self.calibrate_imu()
+            else:
+                self.imu.accel_offset = self.imu_offset
             print("MPU6050 acceleration offset:", self.imu_offset)
             animation_hardware = AnimationHardware(
                 self.display,
@@ -108,8 +109,8 @@ class MusicBoxApp:
                 service_callback=self._service_audio_during_display,
                 render_guard=self._animation_frame_allowed,
             )
-        self.settings = Settings()
         self.volume = self.settings.get("volume")
+        self.exit_requested = False
         self.screen = "menu"
         self.song_title = None
         self.animated_playback = False
@@ -118,8 +119,9 @@ class MusicBoxApp:
         self.main_menu = (
             ("Play song", self.open_song_menu),
             ("Volume", self.open_volume),
-            ("Calibrate IMU", self.do_nothing),
+            ("Calibrate IMU", self.recalibrate_imu),
             ("Hardware test", self.do_nothing),
+            ("Exit to REPL", self.exit_to_repl),
         )
         self.song_menu = (
             ("< Back", self.close_song_menu),
@@ -128,12 +130,40 @@ class MusicBoxApp:
             (SONGS[2][0], self.play_mii_channel),
             (SONGS[3][0], self.play_super_mario),
             (SONGS[4][0], self.play_maps),
-            (SONGS[5][0], self.play_maps_no_animation),
         )
         self.menu = Menu(self.display, self.main_menu)
 
     def do_nothing(self):
         pass
+
+    def calibrate_imu(self):
+        self.display.clear()
+        self.display.text("Calibrating IMU", 8, 20)
+        self.display.text("Keep device still", 0, 34)
+        self.display.show()
+        self.imu_offset = self.imu.calibrate_accel()
+        self.settings.set("imu_accel_offset", self.imu_offset)
+        self.settings.save()
+
+    def recalibrate_imu(self):
+        if self.imu is not None:
+            self.calibrate_imu()
+        self.menu.draw()
+
+    def exit_to_repl(self):
+        self.audio.stop()
+        for voice in self.audio.voices:
+            voice.deinit()
+        for pin in (self.encoder.clk, self.encoder.dt, self.encoder.sw):
+            pin.irq(handler=None)
+        if self.animation_engine is not None:
+            self.animation_engine.clear_layers()
+        self.display.clear()
+        self.display.text("REPL via USB", 16, 20)
+        self.display.text("Reset to resume", 4, 34)
+        self.display.show()
+        self.exit_requested = True
+        print("Music Box stopped. REPL via USB; reset to resume.")
 
     def open_song_menu(self):
         self.screen = "songs"
@@ -157,9 +187,6 @@ class MusicBoxApp:
 
     def play_maps(self):
         self.start_song(*SONGS[4])
-
-    def play_maps_no_animation(self):
-        self.start_song(*SONGS[5])
 
     def start_song(self, title, path, has_melody):
         self._deferred_song_events = []
@@ -364,12 +391,14 @@ class MusicBoxApp:
                 self.stop_song()
             else:
                 self.menu.select()
+            if self.exit_requested:
+                break
 
 
 def main(max_iterations=None):
     app = MusicBoxApp()
     iterations = 0
-    while max_iterations is None or iterations < max_iterations:
+    while not app.exit_requested and (max_iterations is None or iterations < max_iterations):
         app.update()
         iterations += 1
         time.sleep_ms(
@@ -377,6 +406,17 @@ def main(max_iterations=None):
             if app.screen == "playing"
             else IDLE_LOOP_SLEEP_MS
         )
+    if app.exit_requested:
+        try:
+            import platform_services
+        except ImportError:
+            pass
+        else:
+            # Returning would leave the supervisor's keep-alive loop running.
+            # KeyboardInterrupt disables its watchdog feeder; SystemExit resets
+            # MicroPython. BaseException reaches REPL without either effect,
+            # leaving background update checks and watchdog feeding active.
+            raise BaseException("Music Box exited to REPL")
     return app
 
 

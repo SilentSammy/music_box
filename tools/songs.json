@@ -23,9 +23,5 @@
     "source": "../mid/Maroon_5_Maps_selected.mid",
     "output": "../music_box/songs/maps.song",
     "melody": "melodies/maps.melody.json"
-  },
-  {
-    "source": "../mid/Maroon_5_Maps_selected.mid",
-    "output": "../music_box/songs/maps_no_animation.song"
   }
 ]

@@ -5,7 +5,7 @@ import json
 SETTINGS_FILE = "settings.json"
 DEFAULTS = {
     "version": 1,
-    "volume": 50,
+    "volume": 75,
 }
 
 
@@ -32,6 +32,16 @@ class Settings:
     def save(self):
         with open(self.path, "w") as settings_file:
             settings_file.write(json.dumps(self.data))
+
+    def imu_calibration(self):
+        offset = self.data.get("imu_accel_offset")
+        if not isinstance(offset, (list, tuple)) or len(offset) != 3:
+            return None
+        # Reject malformed, infinite, or NaN values instead of using bad physics.
+        if not all(isinstance(value, (int, float)) and -4 <= value <= 4
+                   for value in offset):
+            return None
+        return tuple(offset)
 
     def get(self, name):
         return self.data[name]
