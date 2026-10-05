@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "application_id": "music_box",
+  "version": "0.1.0",
+  "base_url": "https://silentsammy.github.io/music_box",
+  "source_directory": "music_box"
+}
