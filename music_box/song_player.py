@@ -41,7 +41,9 @@ def volume_duty(volume):
 
 class SongPlayer:
     def __init__(self, pins=BUZZER_PINS):
+        self.pins = pins
         self.voices = [PWM(Pin(pin), freq=440, duty_u16=0) for pin in pins]
+        self._frequencies = [440] * len(pins)
         self.song = None
         self.deadline = None
         self.master_duty = 0
@@ -78,11 +80,23 @@ class SongPlayer:
             self._apply_voices(self.state.voices)
 
     def _apply_voices(self, voices):
+        # Release changed channels before assigning new frequencies. On C3 all
+        # four timers may already be occupied; freq() can seek a fifth timer.
+        changed = []
+        for index, (note, _unused, level) in enumerate(voices):
+            enabled = self.voice_filter is None or self.voice_filter == index
+            if enabled and note and level:
+                frequency = note_frequency(note)
+                if frequency != self._frequencies[index]:
+                    self.voices[index].deinit()
+                    changed.append((index, frequency))
+        for index, frequency in changed:
+            self.voices[index] = PWM(Pin(self.pins[index]), freq=frequency, duty_u16=0)
+            self._frequencies[index] = frequency
         for index, output in enumerate(self.voices):
             note, _unused, level = voices[index]
             enabled = self.voice_filter is None or self.voice_filter == index
             if enabled and note and level:
-                output.freq(note_frequency(note))
                 output.duty_u16(self.master_duty * level // 127)
             else:
                 output.duty_u16(0)
@@ -137,7 +151,11 @@ class SongPlayer:
 
     def preview_note(self, note, volume, duration_ms=250):
         self.stop()
-        self.voices[0].freq(note_frequency(note))
+        frequency = note_frequency(note)
+        if self._frequencies[0] != frequency:
+            self.voices[0].deinit()
+            self.voices[0] = PWM(Pin(self.pins[0]), freq=frequency, duty_u16=0)
+            self._frequencies[0] = frequency
         self.voices[0].duty_u16(volume_duty(volume))
         self.previewing = True
         self.deadline = time.ticks_add(time.ticks_ms(), duration_ms)
