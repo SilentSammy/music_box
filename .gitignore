@@ -1,0 +1,28 @@
+# Python-generated files
+__pycache__/
+*.py[cod]
+
+# Local editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Secrets and device-specific configuration
+.env
+.env.*
+**/settings.json
+**/wifi_secrets.py
+wifi-test/com13_hotspot_probe.py
+
+# Local device snapshots
+device_backups/
+
+# Source media retained locally; not intended for public redistribution
+mid/
+midi_parts/
+istockphoto-*.jpg
+
+# Generated packaging output (reserved for later OTA work)
+build/
+dist/

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "description": "Combined Gitara and Adam melody onsets from the improved MIDI, with simultaneous notes reduced to one melody event.",
+  "segments": [
+    {
+      "start_tick": 0,
+      "end_tick": null,
+      "selection": "highest",
+      "sources": [
+        {"track": 1, "channel": 0, "priority": 100},
+        {"track": 2, "channel": 1, "priority": 100}
+      ]
+    }
+  ],
+  "include": [],
+  "exclude": []
+}

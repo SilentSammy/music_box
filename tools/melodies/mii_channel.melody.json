@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "description": "Violin lead with electric-piano fallback.",
+  "segments": [
+    {
+      "start_tick": 0,
+      "end_tick": null,
+      "selection": "highest",
+      "sources": [
+        {"track": 2, "channel": 1, "priority": 100},
+        {"track": 0, "channel": 0, "priority": 50}
+      ]
+    }
+  ],
+  "include": [],
+  "exclude": []
+}

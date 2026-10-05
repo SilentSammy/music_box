@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "description": "Top line of the first String Ensemble channel.",
+  "segments": [
+    {
+      "start_tick": 0,
+      "end_tick": null,
+      "selection": "highest",
+      "sources": [
+        {"track": 0, "channel": 0, "priority": 100}
+      ]
+    }
+  ],
+  "include": [],
+  "exclude": []
+}

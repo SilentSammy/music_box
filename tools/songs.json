@@ -1,0 +1,31 @@
+[
+  {
+    "source": "../mid/Hans_Zimmer_-_Pirates_Of_The_Caribbean_-_He's_A_Pirate.mid",
+    "output": "../music_box/songs/hes_a_pirate.song",
+    "melody": "melodies/hes_a_pirate.melody.json"
+  },
+  {
+    "source": "../mid/Howl’s_Moving_Castle_-_Merry_go_round.mid",
+    "output": "../music_box/songs/merry_go_round.song",
+    "melody": "melodies/merry_go_round.melody.json"
+  },
+  {
+    "source": "../mid/Nintendo_-_Mii_Channel_Song.mid",
+    "output": "../music_box/songs/mii_channel.song",
+    "melody": "melodies/mii_channel.melody.json"
+  },
+  {
+    "source": "../mid/Video_Game_Themes_-_Super_Mario_World.mid",
+    "output": "../music_box/songs/super_mario_world.song",
+    "melody": "melodies/super_mario_world.melody.json"
+  },
+  {
+    "source": "../mid/Maroon_5_Maps_selected.mid",
+    "output": "../music_box/songs/maps.song",
+    "melody": "melodies/maps.melody.json"
+  },
+  {
+    "source": "../mid/Maroon_5_Maps_selected.mid",
+    "output": "../music_box/songs/maps_no_animation.song"
+  }
+]
