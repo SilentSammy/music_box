@@ -26,6 +26,12 @@ That descriptor identifies the current version and its versioned manifest.
 The manifest lists every deployable file with its exact byte count, SHA-256
 hash, and download URL.
 
+Published modules are compiled to portable `.mpy` bytecode using
+`mpy-cross==1.29.0.post2`; `main.py` remains the normal entry point. This avoids
+on-device parser memory spikes that compete with Wi-Fi/TLS native memory.
+The source PyMakr application retains its `.py` files and can still be uploaded
+directly. The manifest declares the minimum firmware and bytecode format.
+
 ## Local preview
 
 Run:
@@ -33,6 +39,8 @@ Run:
 ```powershell
 python tools/build_update_source.py
 ```
+
+Install the compiler first with `python -m pip install mpy-cross==1.29.0.post2`.
 
 The generated feed is written to `build/update-source/`, which is ignored by
 Git. Building it again safely replaces only a directory previously created by

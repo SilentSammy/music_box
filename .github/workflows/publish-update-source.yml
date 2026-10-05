@@ -28,6 +28,9 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Install matching MicroPython compiler
+        run: python -m pip install mpy-cross==1.29.0.post2
+
       - name: Build update source
         run: python tools/build_update_source.py --output _site
 

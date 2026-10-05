@@ -8,6 +8,8 @@ import html
 import json
 import re
 import shutil
+import subprocess
+import sys
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 
@@ -104,10 +106,23 @@ def build(config_path: Path, output: Path) -> dict:
 
     for source_path, relative in deployable_files(source):
         relative_text = relative.as_posix()
-        data = source_path.read_bytes()
+        compile_module = (config.get("compile_modules", False)
+                          and source_path.suffix == ".py" and relative_text != "main.py")
+        if compile_module:
+            relative = relative.with_suffix(".mpy")
+            relative_text = relative.as_posix()
         destination = files_root.joinpath(*relative.parts)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes(data)
+        if compile_module:
+            subprocess.run([
+                sys.executable, "-m", "mpy_cross", "-s",
+                source_path.relative_to(source).as_posix(), "-o", str(destination),
+                str(source_path),
+            ], check=True)
+            data = destination.read_bytes()
+        else:
+            data = source_path.read_bytes()
+            destination.write_bytes(data)
         encoded_path = quote(relative_text, safe="/")
         manifest_files.append(
             {
@@ -127,6 +142,10 @@ def build(config_path: Path, output: Path) -> dict:
         "version": version,
         "files": manifest_files,
     }
+    if config.get("compile_modules", False):
+        # Portable bytecode; no CPU-specific native/viper compilation.
+        manifest["mpy_format"] = 6
+        manifest["minimum_micropython"] = [1, 29, 0]
     manifest_bytes = write_json(release_root / "manifest.json", manifest)
     manifest_url = f"{base_url}/releases/{version}/manifest.json"
 
