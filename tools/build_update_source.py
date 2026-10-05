@@ -19,7 +19,7 @@ DEFAULT_CONFIG = ROOT / "update_source.json"
 DEFAULT_OUTPUT = ROOT / "build" / "update-source"
 OUTPUT_MARKER = ".music-box-update-source"
 VERSION_RE = re.compile(r"^[0-9A-Za-z][0-9A-Za-z._-]*$")
-EXCLUDED_NAMES = {"pymakr.conf"}
+EXCLUDED_NAMES = {"pymakr.conf", "settings.json", "settings.json.tmp", "wifi_secrets.py"}
 EXCLUDED_SUFFIXES = {".pyc", ".pyo"}
 EXCLUDED_PARTS = {"__pycache__"}
 

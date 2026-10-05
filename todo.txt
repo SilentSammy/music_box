@@ -3,3 +3,6 @@
 + Add menu option to exit to REPL
 + Remove the duplicate test copy of Maps
 + Also, remove the Merry-Go-Round individual buzzer channel test
++ Set it up so settings are not included in deployments. If possible automatically port settings from previous versions, otherwise, create the settings file. Keep in mind the settings schema and keys, etc can change between versions.
++ The "Hardware Test" option is currently unimplemented. Have it test all the buzzers, display the IMU data, blink the built-in LED (GPIO8), and test the Wifi connection.
++ Add an about section, displaying current version, current wifi network and a configurable text in settings.json. Set it to "Para mi Carly. Con amor, Samu <3".

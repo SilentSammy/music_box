@@ -111,6 +111,9 @@ class MusicBoxApp:
             )
         self.volume = self.settings.get("volume")
         self.exit_requested = False
+        self.hardware_test = None
+        self.about_offset = 0
+        self.about_next_frame = 0
         self.screen = "menu"
         self.song_title = None
         self.animated_playback = False
@@ -121,7 +124,8 @@ class MusicBoxApp:
             ("Play song", self.open_song_menu),
             ("Volume", self.open_volume),
             ("Calibrate IMU", self.recalibrate_imu),
-            ("Hardware test", self.do_nothing),
+            ("Hardware test", self.open_hardware_test),
+            ("About", self.open_about),
             ("Exit to REPL", self.exit_to_repl),
         )
         self.song_menu = (
@@ -136,6 +140,58 @@ class MusicBoxApp:
 
     def do_nothing(self):
         pass
+
+    def open_hardware_test(self):
+        from hardware_test import HardwareTest
+        self.hardware_test = HardwareTest(self.display, self.audio, self.imu,
+                                          self.settings.get("volume"))
+        self.screen = "hardware"
+
+    def close_hardware_test(self):
+        self.hardware_test.close()
+        self.hardware_test = None
+        self.screen = "menu"
+        self.menu.draw()
+
+    def open_about(self):
+        self.screen = "about"
+        self.about_offset = 0
+        self.draw_about()
+
+    def draw_about(self):
+        from device_status import installed_version, wifi_network
+        display = self.display
+        display.clear()
+        display.text("Version:" + installed_version()[:8], 0, 0)
+        network_text = "WiFi:" + wifi_network()
+        if len(network_text) > 16:
+            # A marquee exposes the complete SSID instead of truncating it.
+            network_text += "   "
+            start = (time.ticks_ms() // 1000) % len(network_text)
+            network_text = (network_text + network_text)[start:start + 16]
+        display.text(network_text, 0, 10)
+        # Wrap configurable text; the encoder scrolls longer messages.
+        lines = []
+        for paragraph in self.settings.get("about_text").split("\n"):
+            line = ""
+            for word in paragraph.split():
+                if line and len(line) + 1 + len(word) > 16:
+                    lines.append(line)
+                    line = ""
+                while len(word) > 16:
+                    if line:
+                        lines.append(line)
+                        line = ""
+                    lines.append(word[:16])
+                    word = word[16:]
+                line = (line + " " + word).strip()
+            lines.append(line)
+        self.about_offset = max(0, min(self.about_offset, max(0, len(lines) - 3)))
+        for row, line in enumerate(lines[self.about_offset:self.about_offset + 3]):
+            display.text(line, 0, 22 + row * 10)
+        display.text("Click: Back", 20, 54)
+        display.show()
+        self.about_next_frame = time.ticks_add(time.ticks_ms(), 1000)
 
     def calibrate_imu(self):
         self.display.clear()
@@ -362,6 +418,23 @@ class MusicBoxApp:
         now = time.ticks_ms()
         was_playing = self.audio.playing
         self.audio.update(now)
+
+        if self.screen == "hardware":
+            self.encoder.take_delta()
+            if self.encoder.take_presses():
+                self.close_hardware_test()
+            else:
+                self.hardware_test.update(now)
+            return
+        if self.screen == "about":
+            delta = self.encoder.take_delta()
+            self.about_offset += delta
+            if self.encoder.take_presses():
+                self.screen = "menu"
+                self.menu.draw()
+            elif delta or time.ticks_diff(now, self.about_next_frame) >= 0:
+                self.draw_about()
+            return
 
         if self.screen == "playing" and self.animated_playback:
             self._dispatch_song_events(now, self._take_song_events())

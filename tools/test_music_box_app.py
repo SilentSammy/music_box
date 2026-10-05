@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 APP = Path(__file__).resolve().parents[1] / "music_box"
 sys.path.insert(0, str(APP))
 from settings import Settings
+import build_update_source
 
 
 class AppTests(unittest.TestCase):
@@ -123,6 +124,100 @@ class AppTests(unittest.TestCase):
         self.assertTrue(app.playback_output_selection)
         app.adjust_playback_output(1)
         self.audio.set_voice_filter.assert_called_with(0)
+
+    def test_about_displays_version_network_and_custom_text(self):
+        app = self.main.MusicBoxApp()
+        app.settings.set("about_text", "Para mi Carly. Con amor, Samu <3")
+        status = types.ModuleType("device_status")
+        status.installed_version = lambda: "0.1.5"
+        status.wifi_network = lambda: "SammyPC"
+        with patch.dict(sys.modules, {"device_status": status}):
+            self.display.text.reset_mock()
+            app.open_about()
+        texts = [call.args[0] for call in self.display.text.call_args_list]
+        self.assertIn("Version:0.1.5", texts)
+        self.assertIn("WiFi:SammyPC", texts)
+        self.assertIn("<3", texts)
+
+    def test_hardware_screen_returns_to_menu_and_cleans_up(self):
+        app = self.main.MusicBoxApp()
+        module = types.ModuleType("hardware_test")
+        module.HardwareTest = MagicMock()
+        with patch.dict(sys.modules, {"hardware_test": module}):
+            app.open_hardware_test()
+        self.assertEqual(app.screen, "hardware")
+        app.update()
+        module.HardwareTest.return_value.update.assert_called_once_with(1000)
+        self.encoder.take_presses.return_value = 1
+        app.update()
+        module.HardwareTest.return_value.close.assert_called_once()
+        self.assertEqual(app.screen, "menu")
+        self.assertIsNone(app.hardware_test)
+
+
+class SettingsMigrationTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.cwd = os.getcwd()
+        os.chdir(self.directory.name)
+        self.previous = Path("previous").resolve()
+        self.previous.mkdir()
+        self.platform = types.ModuleType("platform_services")
+        self.platform.installation_context = lambda: {"previous_path": str(self.previous)}
+        self.patcher = patch.dict(sys.modules, {"platform_services": self.platform})
+        self.patcher.start()
+
+    def tearDown(self):
+        self.patcher.stop()
+        os.chdir(self.cwd)
+        self.directory.cleanup()
+
+    def write_previous(self, value):
+        (self.previous / "settings.json").write_text(json.dumps(value), encoding="utf-8")
+
+    def test_migrate_legacy_values_add_defaults_and_drop_retired_keys(self):
+        self.write_previous({"version": 1, "volume": 35,
+                             "imu_accel_offset": [0.1, 0.2, 0.3], "retired": 42})
+        original = (self.previous / "settings.json").read_bytes()
+        settings = Settings()
+        self.assertEqual(settings.get("version"), 2)
+        self.assertEqual(settings.get("volume"), 35)
+        self.assertEqual(settings.imu_calibration(), (0.1, 0.2, 0.3))
+        self.assertEqual(settings.get("about_text"), "Para mi Carly. Con amor, Samu <3")
+        self.assertNotIn("retired", settings.data)
+        self.assertTrue(Path("settings.json").exists())
+        self.assertEqual((self.previous / "settings.json").read_bytes(), original)
+
+    def test_existing_local_settings_take_priority(self):
+        self.write_previous({"version": 1, "volume": 10})
+        Path("settings.json").write_text(json.dumps({"version": 2, "volume": 90,
+                                                     "about_text": "My message <3"}))
+        settings = Settings()
+        self.assertEqual(settings.get("volume"), 90)
+        self.assertEqual(settings.get("about_text"), "My message <3")
+
+    def test_corrupt_local_imports_previous_and_invalid_values_use_defaults(self):
+        Path("settings.json").write_text("{broken")
+        self.write_previous({"volume": "bad", "imu_accel_offset": [0], "about_text": 1})
+        settings = Settings()
+        self.assertEqual(settings.get("volume"), 75)
+        self.assertIsNone(settings.imu_calibration())
+        self.assertEqual(settings.get("about_text"), "Para mi Carly. Con amor, Samu <3")
+
+    def test_missing_previous_creates_settings(self):
+        self.assertEqual(Settings().get("version"), 2)
+        self.assertTrue(Path("settings.json").exists())
+
+    def test_future_schema_is_not_blindly_imported(self):
+        self.write_previous({"version": 999, "volume": 10})
+        self.assertEqual(Settings().get("volume"), 75)
+
+    def test_settings_and_secrets_are_excluded_from_feed(self):
+        for name in ("settings.json", "settings.json.tmp", "wifi_secrets.py",
+                     "pymakr.conf", "main.py"):
+            Path(name).touch()
+        files = {str(relative) for _, relative in build_update_source.deployable_files(Path("."))}
+        self.assertEqual(files, {"main.py"})
 
 
 if __name__ == "__main__":

@@ -149,14 +149,16 @@ class SongPlayer:
         self._read_next_record()
         self.update(self.started_at)
 
-    def preview_note(self, note, volume, duration_ms=250):
+    def preview_note(self, note, volume, duration_ms=250, voice_index=0):
+        if not 0 <= voice_index < len(self.voices):
+            raise ValueError("invalid preview buzzer")
         self.stop()
         frequency = note_frequency(note)
-        if self._frequencies[0] != frequency:
-            self.voices[0].deinit()
-            self.voices[0] = PWM(Pin(self.pins[0]), freq=frequency, duty_u16=0)
-            self._frequencies[0] = frequency
-        self.voices[0].duty_u16(volume_duty(volume))
+        if self._frequencies[voice_index] != frequency:
+            self.voices[voice_index].deinit()
+            self.voices[voice_index] = PWM(Pin(self.pins[voice_index]), freq=frequency, duty_u16=0)
+            self._frequencies[voice_index] = frequency
+        self.voices[voice_index].duty_u16(volume_duty(volume))
         self.previewing = True
         self.deadline = time.ticks_add(time.ticks_ms(), duration_ms)
 
