@@ -52,16 +52,16 @@ IDLE_LOOP_SLEEP_MS = 20
 SPLASH_DURATION_MS = 2500
 
 SONGS = (
-    ("He's a Pirate", "songs/hes_a_pirate.song", True),
-    ("Merry-Go-Round", "songs/merry_go_round.song", True),
-    ("Mii Channel", "songs/mii_channel.song", True),
-    ("Super Mario", "songs/super_mario_world.song", True),
-    ("Maps", "songs/maps.song", True),
-    ("Animals", "songs/maroon_5_animals.song", True),
-    ("Sunday Morning", "songs/maroon_5sunday_morning.song", True),
-    ("This Love", "songs/maroon_5this_love.song", True),
-    ("She Will Be Loved", "songs/she_will_be_loved.song", False),
     ("Stereo Hearts", "songs/stereo_hearts.song", False),
+    ("She Will Be Loved", "songs/she_will_be_loved.song", False),
+    ("This Love", "songs/maroon_5this_love.song", True),
+    ("Sunday Morning", "songs/maroon_5sunday_morning.song", True),
+    ("Animals", "songs/maroon_5_animals.song", True),
+    ("Maps", "songs/maps.song", True),
+    ("Super Mario", "songs/super_mario_world.song", True),
+    ("Mii Channel", "songs/mii_channel.song", True),
+    ("Merry-Go-Round", "songs/merry_go_round.song", True),
+    ("He's a Pirate", "songs/hes_a_pirate.song", True),
 )
 SNAKE_SONG_PATHS = (
     "songs/mii_channel.song",
@@ -152,16 +152,16 @@ class MusicBoxApp:
         )
         self.song_menu = (
             ("< Back", self.close_song_menu),
-            (SONGS[0][0], self.play_hes_a_pirate),
-            (SONGS[1][0], self.play_merry_go_round),
-            (SONGS[2][0], self.play_mii_channel),
-            (SONGS[3][0], self.play_super_mario),
-            (SONGS[4][0], self.play_maps),
-            (SONGS[5][0], self.play_animals),
-            (SONGS[6][0], self.play_sunday_morning),
-            (SONGS[7][0], self.play_this_love),
-            (SONGS[8][0], self.play_she_will_be_loved),
-            (SONGS[9][0], self.play_stereo_hearts),
+            (SONGS[0][0], self.play_stereo_hearts),
+            (SONGS[1][0], self.play_she_will_be_loved),
+            (SONGS[2][0], self.play_this_love),
+            (SONGS[3][0], self.play_sunday_morning),
+            (SONGS[4][0], self.play_animals),
+            (SONGS[5][0], self.play_maps),
+            (SONGS[6][0], self.play_super_mario),
+            (SONGS[7][0], self.play_mii_channel),
+            (SONGS[8][0], self.play_merry_go_round),
+            (SONGS[9][0], self.play_hes_a_pirate),
         )
         self.menu = Menu(self.display, self.main_menu)
         self.screen = "splash"
@@ -262,34 +262,34 @@ class MusicBoxApp:
         self.menu.set_menu(self.main_menu)
 
     def play_hes_a_pirate(self):
-        self.start_song(*SONGS[0])
+        self.start_song(*SONGS[9])
 
     def play_merry_go_round(self):
-        self.start_song(*SONGS[1])
-
-    def play_mii_channel(self):
-        self.start_song(*SONGS[2])
-
-    def play_super_mario(self):
-        self.start_song(*SONGS[3])
-
-    def play_maps(self):
-        self.start_song(*SONGS[4])
-
-    def play_animals(self):
-        self.start_song(*SONGS[5])
-
-    def play_sunday_morning(self):
-        self.start_song(*SONGS[6])
-
-    def play_this_love(self):
-        self.start_song(*SONGS[7])
-
-    def play_she_will_be_loved(self):
         self.start_song(*SONGS[8])
 
+    def play_mii_channel(self):
+        self.start_song(*SONGS[7])
+
+    def play_super_mario(self):
+        self.start_song(*SONGS[6])
+
+    def play_maps(self):
+        self.start_song(*SONGS[5])
+
+    def play_animals(self):
+        self.start_song(*SONGS[4])
+
+    def play_sunday_morning(self):
+        self.start_song(*SONGS[3])
+
+    def play_this_love(self):
+        self.start_song(*SONGS[2])
+
+    def play_she_will_be_loved(self):
+        self.start_song(*SONGS[1])
+
     def play_stereo_hearts(self):
-        self.start_song(*SONGS[9])
+        self.start_song(*SONGS[0])
 
     def start_song(self, title, path, has_melody):
         self._deferred_song_events = []
@@ -303,12 +303,12 @@ class MusicBoxApp:
             self.animation_engine.clear_layers()
             self.animation_engine.reset_clock(now)
             if path in SNAKE_SONG_PATHS:
-                self.animation_engine.push(SongSnake())
+                self.animation_engine.push(SongSnake(title))
             elif has_melody:
                 self.animation_engine.push(MelodyBalls())
                 self.animation_engine.push(NowPlayingOverlay(title))
             else:
-                self.animation_engine.push(SpinningHeart())
+                self.animation_engine.push(SpinningHeart(title))
             self.animation_engine.post(
                 Event(SONG_STARTED, 0, now, self.audio)
             )

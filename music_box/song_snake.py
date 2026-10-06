@@ -11,14 +11,14 @@ class SongSnake(Animation):
     TILE_SIZE = 6
     TOP_HEIGHT = 8
     BOTTOM_HEIGHT = 8
-    FOOTER_TEXT = "MII CHANNEL"
     MOVE_INTERVAL_MS = 180
     MAX_PELLETS = 10
     INITIAL_LENGTH = 4
     MEASURES_PER_CLEAR = 4
     RANDOM_SEED = 0x00C0FFEE
 
-    def __init__(self):
+    def __init__(self, title=""):
+        self.footer_text = title[:16]
         self.columns = 0
         self.rows = 0
         self.grid_x = 0
@@ -165,10 +165,10 @@ class SongSnake(Animation):
             len(self.snake), len(self.pellets)
         ), 0, 0, 1)
         canvas.text("S:%02d" % self.score, 88, 0, 1)
-        if self.FOOTER_TEXT:
+        if self.footer_text:
             canvas.text(
-                self.FOOTER_TEXT,
-                0,
+                self.footer_text,
+                max(0, (canvas.width - len(self.footer_text) * 8) // 2),
                 self.grid_y + self.rows * self.TILE_SIZE,
                 1,
             )

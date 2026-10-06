@@ -96,6 +96,12 @@ class AppTests(unittest.TestCase):
                             ("Animals", "Sunday Morning", "This Love")))
         self.assertFalse(songs["She Will Be Loved"])
         self.assertFalse(songs["Stereo Hearts"])
+        self.assertEqual(
+            [title for title, _path, _has_melody in self.main.SONGS],
+            ["Stereo Hearts", "She Will Be Loved", "This Love",
+             "Sunday Morning", "Animals", "Maps", "Super Mario",
+             "Mii Channel", "Merry-Go-Round", "He's a Pirate"],
+        )
 
     def test_exit_releases_hardware(self):
         app = self.main.MusicBoxApp()
@@ -136,6 +142,9 @@ class AppTests(unittest.TestCase):
         engine.push.assert_called_once_with(
             self.modules["song_snake"].SongSnake.return_value
         )
+        self.modules["song_snake"].SongSnake.assert_called_once_with(
+            "Mii Channel"
+        )
         self.modules["now_playing_overlay"].NowPlayingOverlay.assert_not_called()
 
     def test_animals_uses_song_snake(self):
@@ -145,6 +154,9 @@ class AppTests(unittest.TestCase):
         engine.push.assert_called_once_with(
             self.modules["song_snake"].SongSnake.return_value
         )
+        self.modules["song_snake"].SongSnake.assert_called_once_with(
+            "Animals"
+        )
 
     def test_song_without_annotations_uses_spinning_heart(self):
         app = self.main.MusicBoxApp()
@@ -152,6 +164,9 @@ class AppTests(unittest.TestCase):
         app.play_she_will_be_loved()
         engine.push.assert_called_once_with(
             self.modules["spinning_heart"].SpinningHeart.return_value
+        )
+        self.modules["spinning_heart"].SpinningHeart.assert_called_once_with(
+            "She Will Be Loved"
         )
         self.assertTrue(app.animated_playback)
 

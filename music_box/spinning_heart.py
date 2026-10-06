@@ -33,7 +33,8 @@ class SpinningHeart(Animation):
         (4.0, -10.0),
     )
 
-    def __init__(self):
+    def __init__(self, title=""):
+        self.title = title
         self.center_x = 0
         self.center_y = 0
         self.angle = 0.0
@@ -134,3 +135,18 @@ class SpinningHeart(Animation):
         self._draw_loop(canvas, self._rotated_points(1.0))
         self._draw_loop(canvas, self._rotated_points(0.72))
         canvas.pixel(self.center_x, self.center_y + 1, 1)
+        if self.title:
+            max_characters = canvas.width // 8
+            if len(self.title) <= max_characters:
+                visible_title = self.title
+            else:
+                scrolling_title = self.title + "   "
+                start = (context.now_ms // 400) % len(scrolling_title)
+                repeated = scrolling_title + scrolling_title
+                visible_title = repeated[start:start + max_characters]
+            canvas.text(
+                visible_title,
+                max(0, (canvas.width - len(visible_title) * 8) // 2),
+                canvas.height - 8,
+                1,
+            )

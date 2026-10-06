@@ -72,14 +72,17 @@ class SongSnakeTests(unittest.TestCase):
         self.assertEqual(game.snake[0], (4, 0))
 
     def test_render_draws_head_direction_pixels(self):
-        game = self.game()
+        game = SongSnake("Animals")
+        game.on_enter(context())
         canvas = MagicMock()
+        canvas.width = 128
         game.render(canvas, context())
         head_x, head_y = game.snake[0]
         pixel_x = game.grid_x + head_x * game.TILE_SIZE
         pixel_y = game.grid_y + head_y * game.TILE_SIZE
         canvas.pixel.assert_any_call(pixel_x + 5, pixel_y + 2, 1)
         canvas.pixel.assert_any_call(pixel_x + 5, pixel_y + 3, 1)
+        canvas.text.assert_any_call("Animals", 36, 56, 1)
 
 
 if __name__ == "__main__":
