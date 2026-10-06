@@ -29,6 +29,8 @@ from song_player import (
     SongPlayer,
 )
 from settings import Settings
+from song_snake import SongSnake
+from spinning_heart import SpinningHeart
 from ssd1306_driver import SSD1306
 
 
@@ -47,22 +49,44 @@ ANIMATION_FPS = 10
 OLED_PAGE_GUARD_MS = 5
 PLAYBACK_LOOP_SLEEP_MS = 2
 IDLE_LOOP_SLEEP_MS = 20
+SPLASH_DURATION_MS = 2500
 
 SONGS = (
     ("He's a Pirate", "songs/hes_a_pirate.song", True),
-    ("Merry-Go-Round", "songs/merry_go_round.song", False),
+    ("Merry-Go-Round", "songs/merry_go_round.song", True),
     ("Mii Channel", "songs/mii_channel.song", True),
     ("Super Mario", "songs/super_mario_world.song", True),
     ("Maps", "songs/maps.song", True),
+    ("Animals", "songs/maroon_5_animals.song", True),
+    ("Sunday Morning", "songs/maroon_5sunday_morning.song", True),
+    ("This Love", "songs/maroon_5this_love.song", True),
+    ("She Will Be Loved", "songs/she_will_be_loved.song", False),
+    ("Stereo Hearts", "songs/stereo_hearts.song", False),
+)
+SNAKE_SONG_PATHS = (
+    "songs/mii_channel.song",
+    "songs/maroon_5_animals.song",
 )
 ANIMATIONS_ENABLED = True
-PLAYBACK_OUTPUTS = (
-    "All buzzers",
-    "Buzzer 1",
-    "Buzzer 2",
-    "Buzzer 3",
-    "Buzzer 4",
-)
+
+
+def wrap_display_text(text, width=16):
+    lines = []
+    for paragraph in text.split("\n"):
+        line = ""
+        for word in paragraph.split():
+            if line and len(line) + 1 + len(word) > width:
+                lines.append(line)
+                line = ""
+            while len(word) > width:
+                if line:
+                    lines.append(line)
+                    line = ""
+                lines.append(word[:width])
+                word = word[width:]
+            line = (line + " " + word).strip()
+        lines.append(line)
+    return lines
 
 
 class AnimationHardware:
@@ -117,8 +141,6 @@ class MusicBoxApp:
         self.screen = "menu"
         self.song_title = None
         self.animated_playback = False
-        self.playback_output_index = 0
-        self.playback_output_selection = True
 
         self.main_menu = (
             ("Play song", self.open_song_menu),
@@ -135,11 +157,33 @@ class MusicBoxApp:
             (SONGS[2][0], self.play_mii_channel),
             (SONGS[3][0], self.play_super_mario),
             (SONGS[4][0], self.play_maps),
+            (SONGS[5][0], self.play_animals),
+            (SONGS[6][0], self.play_sunday_morning),
+            (SONGS[7][0], self.play_this_love),
+            (SONGS[8][0], self.play_she_will_be_loved),
+            (SONGS[9][0], self.play_stereo_hearts),
         )
         self.menu = Menu(self.display, self.main_menu)
+        self.screen = "splash"
+        self.splash_until = time.ticks_add(
+            time.ticks_ms(), SPLASH_DURATION_MS
+        )
+        self.draw_splash()
 
     def do_nothing(self):
         pass
+
+    def draw_splash(self):
+        display = self.display
+        display.clear()
+        display.fill_rect(0, 0, display.width, 15, 1)
+        display.text("MUSIC_BOX", 32, 3, 0)
+        lines = wrap_display_text(self.settings.get("about_text"))[:4]
+        top = 19 + max(0, (4 - len(lines)) * 5)
+        for row, line in enumerate(lines):
+            x = max(0, (display.width - len(line) * 8) // 2)
+            display.text(line, x, top + row * 10)
+        display.show()
 
     def open_hardware_test(self):
         from hardware_test import HardwareTest
@@ -162,7 +206,8 @@ class MusicBoxApp:
         from device_status import installed_version, wifi_network
         display = self.display
         display.clear()
-        display.text("Version:" + installed_version()[:8], 0, 0)
+        version = installed_version()
+        display.text("Version:" + (str(version)[:8] if version else "None"), 0, 0)
         network_text = "WiFi:" + wifi_network()
         if len(network_text) > 16:
             # A marquee exposes the complete SSID instead of truncating it.
@@ -171,21 +216,7 @@ class MusicBoxApp:
             network_text = (network_text + network_text)[start:start + 16]
         display.text(network_text, 0, 10)
         # Wrap configurable text; the encoder scrolls longer messages.
-        lines = []
-        for paragraph in self.settings.get("about_text").split("\n"):
-            line = ""
-            for word in paragraph.split():
-                if line and len(line) + 1 + len(word) > 16:
-                    lines.append(line)
-                    line = ""
-                while len(word) > 16:
-                    if line:
-                        lines.append(line)
-                        line = ""
-                    lines.append(word[:16])
-                    word = word[16:]
-                line = (line + " " + word).strip()
-            lines.append(line)
+        lines = wrap_display_text(self.settings.get("about_text"))
         self.about_offset = max(0, min(self.about_offset, max(0, len(lines) - 3)))
         for row, line in enumerate(lines[self.about_offset:self.about_offset + 3]):
             display.text(line, 0, 22 + row * 10)
@@ -245,24 +276,39 @@ class MusicBoxApp:
     def play_maps(self):
         self.start_song(*SONGS[4])
 
+    def play_animals(self):
+        self.start_song(*SONGS[5])
+
+    def play_sunday_morning(self):
+        self.start_song(*SONGS[6])
+
+    def play_this_love(self):
+        self.start_song(*SONGS[7])
+
+    def play_she_will_be_loved(self):
+        self.start_song(*SONGS[8])
+
+    def play_stereo_hearts(self):
+        self.start_song(*SONGS[9])
+
     def start_song(self, title, path, has_melody):
         self._deferred_song_events = []
         self.song_title = title
         self.screen = "playing"
-        self.playback_output_index = 0
-        self.playback_output_selection = path != "songs/merry_go_round.song"
         self.audio.set_voice_filter(None)
-        self.animated_playback = bool(
-            self.animation_engine is not None
-            and has_melody
-        )
+        self.animated_playback = self.animation_engine is not None
         self.audio.start(path, self.settings.get("volume"), title)
         if self.animated_playback:
             now = time.ticks_ms()
             self.animation_engine.clear_layers()
             self.animation_engine.reset_clock(now)
-            self.animation_engine.push(MelodyBalls())
-            self.animation_engine.push(NowPlayingOverlay(title))
+            if path in SNAKE_SONG_PATHS:
+                self.animation_engine.push(SongSnake())
+            elif has_melody:
+                self.animation_engine.push(MelodyBalls())
+                self.animation_engine.push(NowPlayingOverlay(title))
+            else:
+                self.animation_engine.push(SpinningHeart())
             self.animation_engine.post(
                 Event(SONG_STARTED, 0, now, self.audio)
             )
@@ -287,28 +333,9 @@ class MusicBoxApp:
         display.text("NOW PLAYING", 20, 2)
         title_x = max(0, (display.width - len(self.song_title) * 8) // 2)
         display.text(self.song_title, title_x, 15)
-        if self.playback_output_selection:
-            display.text("Output:", 0, 29)
-            output = PLAYBACK_OUTPUTS[self.playback_output_index]
-            output_x = max(0, (display.width - len(output) * 8) // 2)
-            display.text(output, output_x, 40)
         display.fill_rect(0, 52, display.width, 12, 1)
         display.text("Click: Stop", 20, 54, 0)
         display.show()
-
-    def adjust_playback_output(self, delta):
-        if not self.playback_output_selection:
-            return
-        self.playback_output_index = (
-            self.playback_output_index + delta
-        ) % len(PLAYBACK_OUTPUTS)
-        voice_index = (
-            None
-            if self.playback_output_index == 0
-            else self.playback_output_index - 1
-        )
-        self.audio.set_voice_filter(voice_index)
-        self.draw_playing()
 
     def _service_audio_during_display(self):
         if not self.audio.playing:
@@ -419,6 +446,14 @@ class MusicBoxApp:
         was_playing = self.audio.playing
         self.audio.update(now)
 
+        if self.screen == "splash":
+            self.encoder.take_delta()
+            pressed = self.encoder.take_presses()
+            if pressed or time.ticks_diff(now, self.splash_until) >= 0:
+                self.screen = "menu"
+                self.menu.draw()
+            return
+
         if self.screen == "hardware":
             self.encoder.take_delta()
             if self.encoder.take_presses():
@@ -455,9 +490,7 @@ class MusicBoxApp:
         if delta:
             if self.screen == "volume":
                 self.adjust_volume(delta)
-            elif self.screen == "playing":
-                self.adjust_playback_output(delta)
-            else:
+            elif self.screen != "playing":
                 scroll = self.menu.scroll_down if delta > 0 else self.menu.scroll_up
                 for _ in range(abs(delta)):
                     scroll()

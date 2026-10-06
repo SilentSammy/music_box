@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "description": "Melody annotations for Maroon_5_Animals.mid from MIDI channel 1. Simultaneous notes are reduced to the highest note.",
+  "segments": [
+    {
+      "start_tick": 0,
+      "end_tick": null,
+      "selection": "highest",
+      "sources": [
+        {
+          "track": 3,
+          "channel": 0,
+          "priority": 100
+        }
+      ]
+    }
+  ],
+  "include": [],
+  "exclude": []
+}

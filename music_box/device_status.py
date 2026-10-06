@@ -1,14 +1,13 @@
 """Optional framework integration and non-blocking connectivity diagnostics."""
 import time
-from app_info import VERSION
 
 
 def installed_version():
     try:
         import platform_services
-        return platform_services.installation_context().get("current_version") or VERSION
+        return platform_services.installation_context().get("current_version")
     except (ImportError, AttributeError, OSError, ValueError):
-        return VERSION
+        return None
 
 
 def wifi_network():

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "description": "Melody annotations for maroon_5sunday_morning.mid from MIDI channel 3. Simultaneous notes are reduced to the highest note.",
+  "segments": [
+    {
+      "start_tick": 0,
+      "end_tick": null,
+      "selection": "highest",
+      "sources": [
+        {
+          "track": 0,
+          "channel": 2,
+          "priority": 100
+        }
+      ]
+    }
+  ],
+  "include": [],
+  "exclude": []
+}

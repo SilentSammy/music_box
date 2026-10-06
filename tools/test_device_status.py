@@ -63,6 +63,10 @@ class WifiTests(unittest.TestCase):
         self.assertEqual(device_status.wifi_network(), "SammyPC")
         self.assertEqual(device_status.installed_version(), "0.1.5")
 
+    def test_standalone_install_has_no_framework_version(self):
+        with patch.dict(sys.modules, {"platform_services": None}):
+            self.assertIsNone(device_status.installed_version())
+
     def test_standalone_credentials_and_cleanup(self):
         secrets = types.ModuleType("wifi_secrets")
         secrets.SSID, secrets.PASSWORD = "test-network", "test-password"

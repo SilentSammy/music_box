@@ -10,6 +10,8 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 APP = Path(__file__).resolve().parents[1] / "music_box"
+TOOLS = Path(__file__).resolve().parent
+sys.path.insert(0, str(TOOLS))
 sys.path.insert(0, str(APP))
 from settings import Settings
 import build_update_source
@@ -22,7 +24,7 @@ class AppTests(unittest.TestCase):
         os.chdir(self.directory.name)
         names = ("machine", "animation_engine", "melody_balls", "mpu6050",
                  "now_playing_overlay", "quadrature_encoder", "song_player",
-                 "ssd1306_driver")
+                 "song_snake", "spinning_heart", "ssd1306_driver")
         self.modules = {name: MagicMock() for name in names}
         self.modules["song_player"].FLAG_BEAT = 1
         self.modules["song_player"].FLAG_MEASURE = 2
@@ -85,6 +87,15 @@ class AppTests(unittest.TestCase):
         self.assertIn("Exit to REPL", [label for label, _ in app.main_menu])
         self.assertEqual([title for title, _, _ in self.main.SONGS].count("Maps"), 1)
         self.assertFalse(any("No anim" in title for title, _, _ in self.main.SONGS))
+        self.assertTrue({"Animals", "Sunday Morning", "This Love",
+                         "She Will Be Loved", "Stereo Hearts"}.issubset(
+            {title for title, _, _ in self.main.SONGS}
+        ))
+        songs = {title: has_melody for title, _path, has_melody in self.main.SONGS}
+        self.assertTrue(all(songs[title] for title in
+                            ("Animals", "Sunday Morning", "This Love")))
+        self.assertFalse(songs["She Will Be Loved"])
+        self.assertFalse(songs["Stereo Hearts"])
 
     def test_exit_releases_hardware(self):
         app = self.main.MusicBoxApp()
@@ -104,26 +115,45 @@ class AppTests(unittest.TestCase):
                     self.main.main()
         self.assertNotIsInstance(raised.exception, (Exception, KeyboardInterrupt, SystemExit))
 
-    def test_merry_go_round_has_no_individual_buzzer_controls(self):
+    def test_playback_has_no_individual_buzzer_controls(self):
         app = self.main.MusicBoxApp()
-        app.play_merry_go_round()
-        self.assertFalse(app.playback_output_selection)
-        self.audio.set_voice_filter.assert_called_once_with(None)
-        self.display.text.reset_mock()
-        app.draw_playing()
-        texts = [call.args[0] for call in self.display.text.call_args_list]
-        self.assertNotIn("Output:", texts)
-        self.assertNotIn("All buzzers", texts)
-        app.adjust_playback_output(1)
-        self.audio.set_voice_filter.assert_called_once_with(None)
+        for play in (app.play_merry_go_round, app.play_maps,
+                     app.play_she_will_be_loved, app.play_stereo_hearts):
+            self.audio.set_voice_filter.reset_mock()
+            self.display.text.reset_mock()
+            play()
+            self.audio.set_voice_filter.assert_called_once_with(None)
+            app.draw_playing()
+            texts = [call.args[0] for call in self.display.text.call_args_list]
+            self.assertNotIn("Output:", texts)
+            self.assertNotIn("All buzzers", texts)
+            self.assertFalse(any(text.startswith("Buzzer ") for text in texts))
 
-    def test_other_songs_retain_buzzer_controls(self):
+    def test_mii_channel_uses_song_snake_without_text_overlay(self):
         app = self.main.MusicBoxApp()
-        app.play_merry_go_round()
-        app.play_maps()
-        self.assertTrue(app.playback_output_selection)
-        app.adjust_playback_output(1)
-        self.audio.set_voice_filter.assert_called_with(0)
+        engine = app.animation_engine
+        app.play_mii_channel()
+        engine.push.assert_called_once_with(
+            self.modules["song_snake"].SongSnake.return_value
+        )
+        self.modules["now_playing_overlay"].NowPlayingOverlay.assert_not_called()
+
+    def test_animals_uses_song_snake(self):
+        app = self.main.MusicBoxApp()
+        engine = app.animation_engine
+        app.play_animals()
+        engine.push.assert_called_once_with(
+            self.modules["song_snake"].SongSnake.return_value
+        )
+
+    def test_song_without_annotations_uses_spinning_heart(self):
+        app = self.main.MusicBoxApp()
+        engine = app.animation_engine
+        app.play_she_will_be_loved()
+        engine.push.assert_called_once_with(
+            self.modules["spinning_heart"].SpinningHeart.return_value
+        )
+        self.assertTrue(app.animated_playback)
 
     def test_about_displays_version_network_and_custom_text(self):
         app = self.main.MusicBoxApp()
@@ -138,6 +168,34 @@ class AppTests(unittest.TestCase):
         self.assertIn("Version:0.1.5", texts)
         self.assertIn("WiFi:SammyPC", texts)
         self.assertIn("<3", texts)
+
+        status.installed_version = lambda: None
+        self.display.text.reset_mock()
+        app.open_about()
+        self.assertIn("Version:None", [call.args[0]
+                                       for call in self.display.text.call_args_list])
+
+    def test_splash_uses_custom_message_and_then_opens_menu(self):
+        app = self.main.MusicBoxApp()
+        self.assertEqual(app.screen, "splash")
+        texts = [call.args[0] for call in self.display.text.call_args_list]
+        self.assertIn("MUSIC_BOX", texts)
+        self.assertIn("Para mi Carly.", texts)
+        self.assertIn("Con amor, Samu", texts)
+        self.assertIn("<3", texts)
+
+        self.main.time.ticks_diff.return_value = 0
+        self.display.text.reset_mock()
+        app.update()
+        self.assertEqual(app.screen, "menu")
+        self.assertIn("Play song", [call.args[0]
+                                     for call in self.display.text.call_args_list])
+
+    def test_splash_wraps_long_words_to_display_width(self):
+        self.assertEqual(
+            self.main.wrap_display_text("abcdefghijklmnopq", 16),
+            ["abcdefghijklmnop", "q"],
+        )
 
     def test_hardware_screen_returns_to_menu_and_cleans_up(self):
         app = self.main.MusicBoxApp()

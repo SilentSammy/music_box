@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Melody annotations for Howl\u2019s_Moving_Castle_-_Merry_go_round.mid from player parts 04, 09, 11. Simultaneous notes are reduced to the highest note.",
+  "description": "Melody annotations for Maroon_5This_Love.mid from MIDI channels 1, 5, 8. Simultaneous notes are reduced to the highest note.",
   "segments": [
     {
       "start_tick": 0,
@@ -8,18 +8,18 @@
       "selection": "highest",
       "sources": [
         {
-          "track": 4,
+          "track": 1,
           "channel": 0,
           "priority": 100
         },
         {
-          "track": 9,
-          "channel": 0,
+          "track": 5,
+          "channel": 4,
           "priority": 100
         },
         {
-          "track": 11,
-          "channel": 0,
+          "track": 8,
+          "channel": 7,
           "priority": 100
         }
       ]

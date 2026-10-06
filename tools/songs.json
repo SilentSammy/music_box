@@ -23,5 +23,13 @@
     "source": "../mid/Maroon_5_Maps_selected.mid",
     "output": "../music_box/songs/maps.song",
     "melody": "melodies/maps.melody.json"
+  },
+  {
+    "source": "../mid/Maroon 5 — She Will Be Loved (3) [MIDIfind.com].mid",
+    "output": "../music_box/songs/she_will_be_loved.song"
+  },
+  {
+    "source": "../mid/Stereo Hearts BY DJIMAIRO .mid",
+    "output": "../music_box/songs/stereo_hearts.song"
   }
 ]
